@@ -1,0 +1,28 @@
+{
+    "enabled_headers": {
+        "strict-transport-security": true,
+        "content-security-policy": true,
+        "x-frame-options": true,
+        "x-content-type-options": true,
+        "referrer-policy": true,
+        "permissions-policy": true,
+        "cross-origin-embedder-policy": true,
+        "cross-origin-opener-policy": true,
+        "cross-origin-resource-policy": true,
+        "x-xss-protection": true
+    },
+    "check_info_disclosure": true,
+    "info_disclosure_headers": {
+        "server": true,
+        "x-powered-by": true,
+        "x-aspnet-version": true,
+        "x-aspnetmvc-version": true
+    },
+    "scoring": {
+        "enable_bonus_points": true
+    },
+    "output": {
+        "format": "table",
+        "show_colors": true
+    }
+}

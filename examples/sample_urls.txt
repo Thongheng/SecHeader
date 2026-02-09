@@ -1,0 +1,13 @@
+# Sample URLs for batch scanning
+# Lines starting with # are ignored
+
+# Well-secured sites (expected high grades)
+https://mozilla.org
+https://github.com
+
+# Popular sites (varying security levels)
+https://google.com
+https://facebook.com
+https://twitter.com
+
+# Add your own URLs below:
