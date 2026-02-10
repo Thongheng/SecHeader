@@ -1,17 +1,39 @@
 {
-    "enabled_headers": {
-        "strict-transport-security": true,
-        "content-security-policy": true,
-        "x-frame-options": true,
-        "x-content-type-options": true,
-        "referrer-policy": true,
-        "permissions-policy": true,
-        "cross-origin-embedder-policy": true,
-        "cross-origin-opener-policy": true,
-        "cross-origin-resource-policy": true,
-        "x-xss-protection": true
+    "mode_defaults": "web",
+    "profiles": {
+        "web": {
+            "enabled_headers": {
+                "strict-transport-security": true,
+                "content-security-policy": true,
+                "x-frame-options": true,
+                "x-content-type-options": true,
+                "referrer-policy": true,
+                "permissions-policy": true,
+                "cross-origin-embedder-policy": false,
+                "cross-origin-opener-policy": false,
+                "cross-origin-resource-policy": false,
+                "x-xss-protection": true,
+                "cache-control": false
+            },
+            "check_info_disclosure": true
+        },
+        "api": {
+            "enabled_headers": {
+                "strict-transport-security": true,
+                "content-security-policy": true,
+                "x-frame-options": false,
+                "x-content-type-options": true,
+                "referrer-policy": false,
+                "permissions-policy": false,
+                "cross-origin-embedder-policy": false,
+                "cross-origin-opener-policy": false,
+                "cross-origin-resource-policy": false,
+                "x-xss-protection": false,
+                "cache-control": true
+            },
+            "check_info_disclosure": true
+        }
     },
-    "check_info_disclosure": true,
     "info_disclosure_headers": {
         "server": true,
         "x-powered-by": true,

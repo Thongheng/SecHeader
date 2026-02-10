@@ -36,96 +36,94 @@ chmod +x sec_header_scanner.py
 
 ```bash
 # Scan a single URL
-python sec_header_scanner.py https://example.com
+python main.py https://example.com
 
 # Scan with detailed output
-python sec_header_scanner.py https://example.com --detailed
+python main.py https://example.com --detailed
 
 # Output as JSON
-python sec_header_scanner.py https://example.com --json
+python main.py https://example.com --json
+```
+
+### Scan Modes (Web vs API)
+
+The scanner supports two modes with different security requirements:
+
+```bash
+# Web Mode (Default) - Checks for browser security (XSS, Clickjacking, etc.)
+python main.py --web https://example.com
+
+# API Mode - Focuses on API security (Cache-Control, Content-Type, etc.)
+python main.py --api https://api.example.com
 ```
 
 ### Customized Header Checking
 
 ```bash
 # Check only critical headers
-python sec_header_scanner.py https://example.com --only-critical
+python main.py https://example.com --only-critical
 
 # Check specific headers only
-python sec_header_scanner.py https://example.com --include-headers hsts,csp,x-frame-options
+python main.py https://example.com --include-headers hsts,csp,x-frame-options
 
 # Exclude certain headers from checking
-python sec_header_scanner.py https://example.com --exclude-headers x-xss-protection,server
+python main.py https://example.com --exclude-headers x-xss-protection,server
 ```
 
-### Using Configuration File (Recommended)
+### Using Configuration File
 
-The easiest way to customize which headers to scan is using a `config.json` file:
+The scanner automatically loads `config.json` from the current directory if it exists.
 
 **1. Create config.json:**
 ```json
 {
-  "enabled_headers": {
-    "strict-transport-security": true,
-    "content-security-policy": true,
-    "x-frame-options": true,
-    "x-content-type-options": true,
-    "referrer-policy": false,
-    "permissions-policy": false,
-    "cross-origin-embedder-policy": false,
-    "cross-origin-opener-policy": false,
-    "cross-origin-resource-policy": false,
-    "x-xss-protection": false
-  },
-  "check_info_disclosure": true,
-  "info_disclosure_headers": {
-    "server": true,
-    "x-powered-by": true,
-    "x-aspnet-version": false,
-    "x-aspnetmvc-version": false
+  "mode_defaults": "web",
+  "profiles": {
+    "web": {
+      "enabled_headers": {
+        "strict-transport-security": true,
+        "content-security-policy": true,
+        "x-frame-options": true,
+        "x-content-type-options": true,
+        "referrer-policy": true,
+        "permissions-policy": true,
+        "cross-origin-embedder-policy": false,
+        "cross-origin-opener-policy": false,
+        "cross-origin-resource-policy": false,
+        "x-xss-protection": true,
+        "cache-control": false
+      },
+      "check_info_disclosure": true
+    },
+    "api": {
+      "enabled_headers": {
+        "strict-transport-security": true,
+        "content-security-policy": true,
+        "x-frame-options": false,
+        "x-content-type-options": true,
+        "referrer-policy": false,
+        "permissions-policy": false,
+        "cross-origin-embedder-policy": false,
+        "cross-origin-opener-policy": false,
+        "cross-origin-resource-policy": false,
+        "x-xss-protection": false,
+        "cache-control": true
+      },
+      "check_info_disclosure": true
+    }
   }
 }
 ```
 
-**2. Run with config:**
+**2. Run without flags (auto-loads config.json):**
 ```bash
-python sec_header_scanner.py -c config.json https://example.com
+python main.py https://example.com
 ```
 
-**Configuration Examples:**
-
-Check only critical headers:
-```json
-{
-  "enabled_headers": {
-    "strict-transport-security": true,
-    "content-security-policy": true,
-    "x-frame-options": true,
-    "x-content-type-options": true,
-    "referrer-policy": false,
-    "permissions-policy": false,
-    "cross-origin-embedder-policy": false,
-    "cross-origin-opener-policy": false,
-    "cross-origin-resource-policy": false,
-    "x-xss-protection": false
-  }
-}
+**3. Override config file:**
+```bash
+python main.py -c other-config.json https://example.com
 ```
-
-Skip information disclosure checks (useful for APIs):
-```json
-{
-  "enabled_headers": {
-    "strict-transport-security": true,
-    "content-security-policy": true,
-    "x-frame-options": true,
-    "x-content-type-options": true
-  },
-  "check_info_disclosure": false
-}
-```
-
-**Note:** Command-line flags (`--include-headers`, `--exclude-headers`) always override config file settings.
 
 ### Batch Scanning
 
@@ -234,6 +232,10 @@ optional arguments:
   -f FILE, --file FILE  File containing URLs to scan (one per line)
   -c CONFIG, --config CONFIG
                         Path to configuration file (JSON format)
+
+Scan Mode:
+  --web                 Web application scanning mode (Default)
+  --api                 API scanning mode (Focuses on API security)
 
 Header Customization:
   --include-headers HEADERS

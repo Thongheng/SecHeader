@@ -108,6 +108,14 @@ SECURITY_HEADERS = {
         'recommendation': 'Add: X-XSS-Protection: 0 (when CSP is implemented)',
         'alias': 'x-xss'
     },
+    'cache-control': {
+        'name': 'Cache-Control',
+        'severity': 'critical',
+        'missing_points': -20,
+        'description': 'Controls caching behavior (critical for APIs)',
+        'recommendation': 'Add: Cache-Control: no-store',
+        'alias': 'cache-control'
+    },
 }
 
 # Information disclosure headers (should be absent or minimal)
@@ -165,6 +173,18 @@ class SecurityHeaderScanner:
         self.session = requests.Session()
         self.config = self._load_config()
         
+        # Determine mode
+        self.mode = 'web'  # Default
+        if hasattr(args, 'api') and args.api:
+            self.mode = 'api'
+        elif hasattr(args, 'web') and args.web:
+            self.mode = 'web'
+        elif self.config and 'mode_defaults' in self.config:
+            self.mode = self.config['mode_defaults']
+            
+        print(f"{Fore.CYAN}Running in {self.mode.upper()} mode{Style.RESET_ALL}", file=sys.stderr)
+
+        
         # Configure proxy if specified
         if args.proxy:
             self.session.proxies = {
@@ -177,17 +197,28 @@ class SecurityHeaderScanner:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
     def _load_config(self) -> Dict:
-        """Load configuration from file if specified."""
+        """Load configuration from file."""
+        config_path = None
+        
+        # 1. Explicit config file via CLI
         if hasattr(self.args, 'config') and self.args.config:
+            config_path = self.args.config
+        # 2. Default config file in current directory
+        else:
+            import os
+            if os.path.exists('config.json'):
+                config_path = 'config.json'
+            
+        if config_path:
             try:
-                with open(self.args.config, 'r') as f:
+                with open(config_path, 'r') as f:
                     return json.load(f)
             except FileNotFoundError:
-                print(f"{Fore.YELLOW}Warning: Config file not found: {self.args.config}{Style.RESET_ALL}", file=sys.stderr)
-                return {}
+                if self.args.config:  # Only warn if explicitly requested
+                    print(f"{Fore.YELLOW}Warning: Config file not found: {config_path}{Style.RESET_ALL}", file=sys.stderr)
             except json.JSONDecodeError as e:
                 print(f"{Fore.YELLOW}Warning: Invalid JSON in config file: {e}{Style.RESET_ALL}", file=sys.stderr)
-                return {}
+        
         return {}
     
     def get_headers_to_check(self) -> Dict:
@@ -201,8 +232,15 @@ class SecurityHeaderScanner:
             alias_map[key] = key
         
         # Check config file first, then command-line args override
-        if self.config and 'enabled_headers' in self.config:
-            # Use config file settings
+        # Use profile-based configuration
+        if self.config and 'profiles' in self.config and self.mode in self.config['profiles']:
+            profile = self.config['profiles'][self.mode]
+            if 'enabled_headers' in profile:
+                for key, info in SECURITY_HEADERS.items():
+                    if profile['enabled_headers'].get(key, True):
+                        headers_to_check[key] = info
+        # Fallback to legacy config structure or defaults
+        elif self.config and 'enabled_headers' in self.config:
             for key, info in SECURITY_HEADERS.items():
                 if self.config['enabled_headers'].get(key, True):
                     headers_to_check[key] = info
@@ -369,6 +407,11 @@ class SecurityHeaderScanner:
         elif header_name == 'X-XSS-Protection':
             if header_value != '0' and 'content-security-policy' in [h.lower() for h in self.session.headers]:
                 return 'Consider setting to 0 when CSP is implemented'
+        
+        elif header_name == 'Cache-Control':
+            if 'no-store' not in header_value.lower():
+                return 'Consider adding no-store for sensitive content'
+            return 'Good configuration'
         
         return 'Header present'
     
@@ -566,6 +609,11 @@ Examples:
     
     # Config file
     parser.add_argument('-c', '--config', help='Path to configuration file (JSON format)')
+    
+    # Scan Mode
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument('--web', action='store_true', help='Web application scanning mode (Default)')
+    mode_group.add_argument('--api', action='store_true', help='API scanning mode (Focuses on API security)')
     
     # Header customization
     parser.add_argument('--include-headers', help='Comma-separated list of headers to check (e.g., hsts,csp,x-frame-options)')
